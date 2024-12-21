@@ -1,17 +1,17 @@
-FROM debian:buster
+FROM debian:bullseye
 
-RUN apt update -y && apt upgrade -y
-RUN apt install nginx -y
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN mkdir -p /etc/nginx/ssl
-RUN apt install openssl -y
+RUN apt-get update -y && apt-get upgrade -y \
+    && apt-get install vim tini nginx openssl -y
 
-RUN openssl req -x509 -nodes -out /etc/nginx/ssl/inception.crt -keyout /etc/nginx/ssl/inception.key -subj "/C=FR/ST=IDF/L=Nice/O=42/OU=42/CN=akunegel.42.fr/UID=akunegel"
-RUN mkdir -p /var/run/nginx
+COPY ./tools/nginx.sh /tmp/nginx.sh
+COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 
-COPY conf/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 443
 
-RUN chmod 755 /var/www/html
-RUN chown -R www-data:www-data /var/www/html
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
-CMD [ "nginx", "-g", "daemon off;" ]
+RUN chmod +x /tmp/nginx.sh
+
+CMD ["sh", "/tmp/nginx.sh"]

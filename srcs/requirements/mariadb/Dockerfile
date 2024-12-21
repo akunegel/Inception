@@ -1,11 +1,17 @@
-FROM debian:buster
+FROM debian:bullseye
 
-RUN apt update -y && apt upgrade -y
-RUN apt-get install mariadb-server -y
+ENV DEBIAN_FRONTEND=noninteractive
 
-COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+RUN apt-get update -y && apt-get upgrade -y \
+	&& apt-get install tini mariadb-server -y
 
-COPY conf/script.sh .
-RUN chmod +x script.sh
+COPY ./conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY ./tools/init.sh /docker-entrypoint-initdb.d/init.sh
 
-CMD ["./script.sh"]
+RUN chmod +x /docker-entrypoint-initdb.d/init.sh
+
+EXPOSE 3306
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD ["sh", "/docker-entrypoint-initdb.d/init.sh"]

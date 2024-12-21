@@ -1,16 +1,20 @@
-FROM debian:buster
+FROM debian:bullseye
 
-RUN apt-get update
-RUN apt-get -y install php7.3 php-mysqli php-fpm wget sendmail
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && apt-get upgrade -y \
+	&& apt-get install php-fpm php-mysql wget unzip tini -y \
+	&& wget http://wordpress.org/latest.tar.gz \
+	&& mkdir -p /var/www/html \
+	&& tar xfz latest.tar.gz -C /var/www/html \
+	&& mv /var/www/html/wordpress/* /var/www/html \
+	&& rm -rf latest.tar.gz && rm -fr /var/www/html/wordpress
+	
+
+COPY ./tools/wp.sh /tmp/wp.sh
 
 EXPOSE 9000
 
-COPY ./conf/www.conf /etc/php/7.3/fpm/pool.d
-COPY ./conf/wp-config.php /var/www/
-COPY ./conf/script.sh .
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
-RUN chmod +x script.sh
-
-ENTRYPOINT [ "/script.sh" ]
-
-CMD ["/usr/sbin/php-fpm7.3", "--nodaemonize"]
+CMD ["sh", "/tmp/wp.sh"]
